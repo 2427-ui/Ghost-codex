@@ -1,0 +1,23 @@
+appId: studio.ghost.desktop
+productName: Ghost Studio
+directories:
+  output: dist
+files:
+  - out/**/*
+  - package.json
+  - THIRD_PARTY_NOTICES.md
+  - licenses/**/*
+  - resources/**/*
+asar: true
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  executableName: GhostStudio
+  icon: resources/ghost.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: Ghost Studio

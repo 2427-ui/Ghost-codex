@@ -1,0 +1,7 @@
+{
+  "recordedAt": "2026-10-23",
+  "cliVersion": "0.163.0-alpha.11.2",
+  "note": "Historical local verification, retained independently of temporary probe output. These records are not rerun by generating documentation.",
+  "readMethods": ["project/list", "skills/list", "hooks/list", "collaborationMode/list", "mcpServerStatus/list", "plugin/installed", "plugin/list", "app/list", "experimentalFeature/list", "permissionProfile/list", "windowsSandbox/readiness", "configRequirements/read", "config/read", "account/usage/read", "threadSection/list", "remoteControl/status/read", "memory/status"],
+  "taskMethods": ["thread/start", "turn/start", "thread/name/set", "thread/fork", "thread/archive", "thread/unarchive", "thread/goal/set", "thread/goal/get", "thread/goal/clear", "thread/queue/add", "thread/queue/list", "thread/queue/delete", "review/start", "turn/steer", "command/exec", "process/spawn", "process/writeStdin", "process/resizePty", "process/kill"]
+}

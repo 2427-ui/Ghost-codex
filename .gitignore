@@ -1,0 +1,17 @@
+node_modules/
+out/
+dist/*
+!dist/Ghost Studio Setup 0.2.0.exe
+!dist/Ghost Studio Setup 0.2.0.exe.blockmap
+!dist/SHA256SUMS.txt
+!dist/win-unpacked/
+output/
+.reference/
+.ghost-dev/
+test-results/
+playwright-report/
+*.log
+.env*
+!.env.example
+coverage/
+*.tsbuildinfo
