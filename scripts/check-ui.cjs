@@ -6,48 +6,26 @@ const defaultPersona = require('../src/shared/persona/default.json').text;
 
 const root = path.resolve('out/renderer');
 const output = path.resolve('output/ui-c3');
-const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.ttf':'font/ttf', '.png':'image/png' };
+const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.ttf':'font/ttf', '.png':'image/png', '.mp4':'video/mp4' };
 const server = http.createServer(async (req, res) => {
   try {
     const requested = path.resolve(root, '.' + new URL(req.url, 'http://localhost').pathname);
     if (!requested.startsWith(root + path.sep) && requested !== root) { res.writeHead(403).end(); return; }
     const file = requested === root ? path.join(root, 'index.html') : requested;
     res.setHeader('content-type', mime[path.extname(file)] || 'application/octet-stream');
-    res.end(await fs.readFile(file));
+    const data=await fs.readFile(file);
+    if(req.headers.range) {
+      const match=/^bytes=(\d+)-(\d*)$/.exec(req.headers.range);
+      if(!match){res.writeHead(416).end();return}
+      const start=Number(match[1]),end=match[2]?Math.min(Number(match[2]),data.length-1):data.length-1;
+      if(start>end||start>=data.length){res.writeHead(416,{'content-range':`bytes */${data.length}`}).end();return}
+      res.writeHead(206,{'accept-ranges':'bytes','content-range':`bytes ${start}-${end}/${data.length}`,'content-length':end-start+1});
+      res.end(data.subarray(start,end+1));
+    } else {res.setHeader('content-length',data.length);res.end(data)}
   } catch { res.writeHead(404).end(); }
 });
 
-function fixture(defaults) {
-  const listeners = new Set();
-  const drafts = {};
-  const history = [
-    { id:'user-1', type:'userMessage', text:'帮我看看下一步怎样完善这个项目。' },
-    { id:'agent-1', type:'agentMessage', text:'界面已经切换到 **C3 白色玻璃风格**。\n\n### 接下来可以做什么\n\n- 探索项目结构与主要入口\n- 规划下一步开发任务\n- 检查当前代码变更\n\n```ts\nexport const studio = { theme: "silver", ready: true }\n```\n\n| 区域 | 当前状态 |\n| --- | --- |\n| 工作台 | 已就绪 |\n| Ghost | 等待你的指令 |' },
-    { id:'tool-1', type:'commandExecution', text:'', command:'npm run build', output:'Typecheck passed. Build completed.', status:'completed' }
-  ];
-  const state = {
-    projects:[{id:'project-1',name:'测试项目',path:'C:/Projects/Studio',updatedAt:1}],
-    sessions:[{id:'thread-1',projectId:'project-1',title:'继续完善 Studio',updatedAt:1}],
-    approvals:[], historySync:{state:'ready',updatedAt:1,count:1,error:null},
-    settings:{codexPath:'',personaEnabled:true,persona:defaults.persona,model:'fixture-model',effort:'medium',mode:'default',permission:'workspace-write',motion:'off',mascotVisible:true,fontSize:defaults.fontSize,sidebarWidth:244,detailWidth:520,lastProjectId:'project-1',lastSessionId:null},
-    runtime:{connection:'connected',executable:'codex',version:'Preview',account:{type:'chatgpt',email:'studio@example.com',planType:'Plus'},models:[{id:'fixture-model',model:'fixture-model',displayName:'Studio Model',isDefault:true,defaultReasoningEffort:'medium',supportedReasoningEfforts:[{reasoningEffort:'medium',description:''}]}],limits:null,activity:'idle',activeThreadId:null,activeTurnId:null,task:'',error:null}
-  };
-  const emit = event => listeners.forEach(callback => callback(event));
-  window.__fixture = { state, emit };
-  window.ghost = {
-    snapshot:async()=>structuredClone(state), subscribe:callback=>{listeners.add(callback);return()=>listeners.delete(callback)},
-    settings:async patch=>{Object.assign(state.settings,patch);return structuredClone(state.settings)},
-    history:async()=>structuredClone(history), draft:async(id,text)=>{if(text!==undefined)drafts[id]=text;return drafts[id]||''},
-    editorDirty:async()=>{}, syncHistory:async()=>{}, window:async()=>{}, openExternal:async()=>{},
-    capability:async()=>({data:[]}), tree:async()=>[{name:'hello.ts',path:'hello.ts',directory:false}],
-    read:async(id,file)=>({path:file,content:'// Ghost Studio\nexport const theme = "silver"\nexport function greet() {\n  return "Hello, Ghost"\n}\n',version:'1'}),
-    git:async()=>({isRepo:true,branch:'main',entries:[]}),
-    chooseAttachments:async()=>[{id:'file-1',name:'notes.md',path:'C:/Projects/Studio/notes.md',type:'file'}],
-    createSession:async projectId=>{const s={id:'thread-2',projectId,title:'新的想法',updatedAt:2};state.sessions.unshift(s);return s},
-    send:async(id,text)=>{state.settings.lastSessionId=id;setTimeout(()=>{emit({type:'data'});emit({type:'notification',method:'item/completed',params:{threadId:id,item:{id:'sent-user',type:'userMessage',content:[{type:'text',text}]}}});emit({type:'notification',method:'item/completed',params:{threadId:id,item:{id:'sent-agent',type:'agentMessage',text:'已收到，我们可以继续。'}}});},20)},
-    petLayout:async()=>{},petInteractive:async()=>{},petDrag:async()=>{},petSend:async()=>{},interrupt:async()=>{}
-  };
-}
+const fixture = require('./ui-fixture.cjs');
 
 (async()=>{
   await fs.mkdir(output,{recursive:true});
@@ -62,6 +40,8 @@ function fixture(defaults) {
     await page.goto(url);
     await expect(page.getByRole('heading',{name:'GHOST.'})).toBeVisible();
     await page.screenshot({path:path.join(output,'home-1440.png')});
+    await page.locator('.quick-actions').screenshot({path:path.join(output,'glass-detail.png')});
+    await page.locator('.hero .ghost-stage').screenshot({path:path.join(output,'ghost-detail.png')});
     await page.setViewportSize({width:1366,height:768});
     await page.screenshot({path:path.join(output,'home-1366.png')});
     const appearance=await page.locator('.app-shell').evaluate(el=>({background:getComputedStyle(el).backgroundColor,color:getComputedStyle(el).color,scheme:getComputedStyle(document.documentElement).colorScheme,overflow:document.documentElement.scrollWidth>innerWidth}));
@@ -86,11 +66,16 @@ function fixture(defaults) {
     await expect(page.getByRole('dialog',{name:'设置'})).toBeVisible();
     await page.screenshot({path:path.join(output,'settings.png')});
     await page.getByRole('button',{name:'界面与动效',exact:true}).click();
+    await expect(page.locator('.switch-row').filter({has:page.getByRole('checkbox',{name:'启动动画',exact:true})})).toContainText('2.75 秒');
+    await expect(page.getByRole('checkbox',{name:'启动动画',exact:true})).toBeChecked();
+    await page.getByRole('checkbox',{name:'启动动画',exact:true}).uncheck();
+    await expect(page.getByRole('checkbox',{name:'启动动画',exact:true})).not.toBeChecked();
     await expect(page.locator('#font-size')).toHaveValue('18');
     await page.locator('#font-size').focus();
     await page.keyboard.press('End');
     await expect(page.locator('#font-size')).toHaveValue('20');
     await page.getByRole('button',{name:'恢复默认界面',exact:true}).click();
+    await expect(page.getByRole('checkbox',{name:'启动动画',exact:true})).toBeChecked();
     await expect(page.locator('#font-size')).toHaveValue('18');
     await page.screenshot({path:path.join(output,'appearance.png')});
     await page.getByRole('button',{name:'关闭设置'}).click();
@@ -119,11 +104,26 @@ function fixture(defaults) {
     await expect(page.locator('.hero .ghost-stage')).toHaveAttribute('data-motion','full');
     await page.mouse.move(20,20);
     await expect.poll(()=>page.locator('.hero .ghost-stage').evaluate(el=>el.style.getPropertyValue('--eye-x'))).toBe('-4px');
+    await page.locator('.quick-actions button').first().hover();
+    await expect.poll(()=>page.locator('.quick-actions button').first().evaluate(el=>el.style.getPropertyValue('--glass-x'))).not.toBe('');
     for(const activity of ['running','approval','completed','interrupted','error']) {
       await page.evaluate(activity=>{const {state,emit}=window.__fixture;state.runtime.activity=activity;emit({type:'runtime',runtime:{...state.runtime}})},activity);
       await expect(page.locator('.hero .ghost-stage')).toHaveAttribute('data-activity',activity);
+      if(activity==='completed') {
+        await expect(page.locator('.hero .ghost-stage')).toHaveAttribute('data-feedback','complete');
+        await expect(page.locator('.hero .ghost-stage')).toHaveAttribute('data-feedback','none');
+      }
+      if(activity==='error'||activity==='interrupted') expect(await page.locator('.hero .ghost-eye').evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
     }
+    await page.evaluate(()=>{const {state,emit}=window.__fixture;emit({type:'visibility',visible:false});state.runtime.activity='running';emit({type:'runtime',runtime:{...state.runtime}})});
+    await expect(page.locator('.hero .ghost-stage')).toHaveAttribute('data-paused','true');
+    await page.evaluate(()=>{const {state,emit}=window.__fixture;state.runtime.activity='completed';emit({type:'runtime',runtime:{...state.runtime}})});
+    await expect(page.locator('.hero .ghost-stage')).toHaveAttribute('data-feedback','none');
+    await page.evaluate(()=>window.__fixture.emit({type:'visibility',visible:true}));
+    await expect(page.locator('.hero .ghost-stage')).toHaveAttribute('data-paused','false');
+    await expect(page.locator('.hero .ghost-stage')).toHaveAttribute('data-feedback','none');
     await page.emulateMedia({reducedMotion:'reduce'});
+    expect(await page.locator('.quick-actions button').first().evaluate(el=>el.style.getPropertyValue('--glass-x'))).toBe('');
     expect(await page.locator('.hero .ghost-eye').evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
     const mini=await browser.newPage({viewport:{width:400,height:620},deviceScaleFactor:1});
     mini.on('pageerror',error=>errors.push(error.message));
@@ -133,8 +133,64 @@ function fixture(defaults) {
     await mini.getByRole('button',{name:'展开桌宠对话'}).click();
     await expect(mini.getByRole('dialog',{name:'与 Ghost 对话'})).toBeVisible();
     await mini.screenshot({path:path.join(output,'pet-chat.png'),omitBackground:true});
+    const petLayout=await mini.locator('.pet-chat').boundingBox();
+    expect(petLayout.x+petLayout.width).toBeLessThanOrEqual(400);
+    const startupChecks=[];
+    async function startupPage(options={}) {
+      const next=await browser.newPage({viewport:{width:1440,height:940},deviceScaleFactor:options.scale||1});
+      next.on('pageerror',error=>errors.push(error.message));
+      await next.addInitScript(fixture,{fontSize:18,persona:defaultPersona,motion:'full',...options});
+      return next;
+    }
+    const startup=await startupPage();
+    await startup.goto(url);
+    await expect(startup.getByRole('dialog',{name:'Ghost 启动动画'})).toBeVisible();
+    await expect(startup.locator('.app-shell')).toHaveAttribute('inert','');
+    const openingStarted=Date.now();
+    await expect(startup.locator('video')).toHaveCount(0);
+    await startup.waitForFunction(()=>parseFloat(document.querySelector('.startup-overlay')?.style.getPropertyValue('--startup-progress'))>.32);
+    await startup.waitForFunction(()=>document.querySelector('.startup-overlay')?.getAttribute('data-phase')==='regard');
+    await startup.screenshot({path:path.join(output,'startup-eye.png')});
+    await expect(startup.locator('.startup-overlay')).toHaveCount(0,{timeout:5000});
+    expect(Date.now()-openingStarted).toBeGreaterThan(2000);
+    expect(Date.now()-openingStarted).toBeLessThan(5000);
+    await expect(startup.locator('.app-shell')).not.toHaveAttribute('inert','');
+    await startup.evaluate(()=>window.__fixture.emit({type:'data'}));
+    await expect(startup.locator('.startup-overlay')).toHaveCount(0);
+    await startup.reload();
+    await expect(startup.getByRole('heading',{name:'GHOST.'})).toBeVisible();
+    await expect(startup.locator('.startup-overlay')).toHaveCount(0);
+    startupChecks.push('code-only mechanical eye, no video, 2.75s completion, background initialization, no replay on data/reload');
+    await startup.close();
+    for(const method of ['button','Escape']) {
+      const next=await startupPage();await next.goto(url);
+      await expect(next.locator('.startup-overlay')).toBeVisible();
+      if(method==='button')await next.getByRole('button',{name:/跳过/}).click();else await next.keyboard.press('Escape');
+      await expect(next.locator('.startup-overlay')).toHaveCount(0);
+      await expect(next.getByLabel('发送给 Ghost 的任务')).toBeEditable();await next.close();
+    }
+    startupChecks.push('skip button and Escape');
+    for(const options of [{startupAnimation:false},{motion:'off'},{motion:'reduced'},{reduced:true}]) {
+      const next=await startupPage(options);if(options.reduced)await next.emulateMedia({reducedMotion:'reduce'});
+      await next.goto(url);await expect(next.getByRole('heading',{name:'GHOST.'})).toBeVisible();
+      await expect(next.locator('.startup-overlay')).toHaveCount(0,{timeout:1500});await next.close();
+    }
+    startupChecks.push('disabled, static and both reduced motion preferences');
+    const stalled=await startupPage();
+    await stalled.addInitScript(()=>{window.requestAnimationFrame=()=>0;window.cancelAnimationFrame=()=>{}});
+    await stalled.goto(url);
+    await expect(stalled.locator('.startup-overlay')).toHaveCount(0,{timeout:5000});await stalled.close();
+    startupChecks.push('stalled animation frame cannot trap the workspace');
+    for(const scale of [1.25,1.5]) {
+      const next=await startupPage({motion:'off',connection:'disconnected',scale});await next.goto(url);
+      await expect(next.locator('.hero .coordinate-right')).toHaveText('OFFLINE');
+      expect(await next.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+      const inputBox=await next.locator('.composer-card').boundingBox();expect(inputBox.y+inputBox.height).toBeLessThan(940);
+      await next.screenshot({path:path.join(output,`home-scale-${scale}.png`)});await next.close();
+    }
+    startupChecks.push('offline status and 125/150% pixel density');
     expect(errors).toEqual([]);
-    const report={source:'Production renderer in Chrome, deterministic IPC fixture; no account calls',appearance,errors,checks:['two home sizes','chat markdown and attachment','send','Monaco editor','settings','capabilities','terminal','approval','pointer tracking','all activity states','reduced motion','pet conversation'],screenshots:await fs.readdir(output)};
+    const report={source:'Production renderer in Chrome, deterministic IPC fixture; no account calls',appearance,errors,startupChecks,checks:['two home sizes','chat markdown and attachment','send','Monaco editor','settings','capabilities','terminal','approval','pointer tracking','all activity states','reduced motion','pet conversation'],screenshots:await fs.readdir(output)};
     await fs.writeFile(path.join(output,'verification.json'),JSON.stringify(report,null,2));
     console.log(JSON.stringify(report));
   } finally { await browser.close(); server.close(); }

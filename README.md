@@ -1,89 +1,164 @@
 # Ghost Studio
 
-本地优先的 Windows Codex 桌面工作台。当前版本 **0.2.0**，采用 C3 白色玻璃界面：白色主背景、浅灰网格与轨道、银灰大眼睛和透明玻璃控件。工作台、桌宠、任务栏及托盘图标使用同一套视觉。默认字号为 **18**；默认人设采用 Fairy-DSH 的公开预设风格，助手名称保持 **Ghost**。
+Ghost 的名称来自游戏《绝区零》中的同名 AI，它是游戏设定中的四大 AI 之一。
 
-![Ghost Studio 当前界面](docs/screenshots/home.png)
+Ghost Studio 是一个本地优先的 Windows Codex 桌面工作台。你可以用它聊天、管理本机 Codex 会话、打开项目、编辑文件、查看代码变更和执行开发任务，也可以把工作台收起为桌宠。
 
-[文档导航](docs/README.md) · [开发与打包](docs/DEVELOPMENT.md) · [功能边界](docs/CODEX-PARITY.md) · [验证记录](docs/VERIFICATION.md) · [正式发布内容](RELEASE-CONTENTS.md)
+本仓库包含应用源码、Windows 安装包和解压式程序。直接使用应用不需要配置 Node.js；从源码开发和打包时才需要安装开发环境。AI 功能需要本机已安装并登录的官方 Codex CLI。
 
-## 启动与使用
+![Ghost Studio 界面](docs/screenshots/home.png)
 
-本地已有构建时，双击项目目录中的 `启动Ghost.cmd`，或运行 `dist/win-unpacked/GhostStudio.exe`。安装程序为 `dist/Ghost Studio Setup 0.2.0.exe`。安装包自带运行环境；使用 AI 能力仍需安装并登录官方 Codex CLI。
+[使用文档](docs/README.md) · [开发与打包](docs/DEVELOPMENT.md) · [功能边界](docs/CODEX-PARITY.md) · [第三方说明](THIRD_PARTY_NOTICES.md)
 
-仓库同时保存源码和正式构建，`dist/` 中的二进制通过 Git LFS 管理。克隆前安装 Git LFS，执行 `git lfs install`，克隆后执行 `git lfs pull` 获取实际程序文件；GitHub 页面上的源码 ZIP 可能只包含 LFS 指针。
+## 获取仓库
 
-1. 直接使用“普通聊天”；需要开发时，再打开本地项目目录。
-2. 在左下角设置检查 Codex 连接；未自动发现时选择 `codex.exe`，按需通过 ChatGPT 登录。
-3. 选择模型、执行或计划模式，输入消息或添加附件。Enter 发送，Shift+Enter 换行。
-4. 右上角打开文件或变更面板；“功能”进入 Codex 功能中心。
-5. 关闭主窗口或点击 Ghost 按钮会收起为桌宠，当前任务继续执行。从托盘菜单或桌宠电源按钮选择“退出”才会真正退出。
+仓库中的安装包和解压式程序通过 Git LFS 保存。先安装 Git 和 Git LFS，再克隆仓库：
 
-桌宠支持拖动、右键眼睛或点击对话按钮展开聊天，点击眼睛恢复工作台。任务状态、会话选择和已有会话草稿与主窗口共享。更新构建后，先从托盘退出旧实例，再重新启动。
+```powershell
+git lfs install
+git clone https://github.com/2427-ui/Ghost-codex.git
+cd Ghost-codex
+git lfs pull
+```
 
-## 当前能力
+GitHub 的源码 ZIP 可能只包含 LFS 指针。需要直接运行程序时，使用 Git 克隆并执行 `git lfs pull` 获取完整文件。
 
-- 项目导航、普通聊天、本机 Codex 历史共享，支持分页、来源/归档筛选和恢复会话。
-- 流式回复、工具记录、停止、执行中补充指令和原生队列，支持 Plan 模式、计划与用量展示。
-- 图片、音频、文件及显式技能附件；命令、文件修改、额外权限、问题回答、MCP 与工具请求交互。
-- Monaco 多文件编辑、显式保存、外部修改冲突检查；Git 状态与工作区/暂存区只读 Diff。
-- 功能中心接入当前协议快照的 168 个可操作请求，包括会话管理、项目、Skills、MCP、插件和高级参数表单。
-- 沙箱非交互终端与需要明确确认的主机交互 PTY。
-- 可修改的人设、文字大小和动效设置；支持系统减少动效偏好。
-- 透明桌宠、任务与回复摘要、位置保存、托盘和恢复工作台。
+## 启动应用
 
-接口入口不等于完整官方交互，也不表示所有接口都已逐项实调。当前仍同时执行一个任务。完整状态见 [功能清单](docs/CODEX-PARITY.md) 和 [接口覆盖表](docs/CODEX-INTERFACES.md)。
+在仓库根目录选择一种启动方式：
 
-## 数据与执行边界
+- 双击 `启动Ghost.cmd`，使用仓库内的解压式程序。
+- 直接运行 `dist/win-unpacked/GhostStudio.exe`。移动程序时，保留整个 `win-unpacked` 文件夹。
+- 运行 `dist/Ghost Studio Setup 0.3.1.exe`，按向导安装后从桌面快捷方式启动。
 
-应用元数据默认位于 `%APPDATA%/ghost-studio/`，包括 SQLite 设置、项目/会话引用和草稿；`GHOST_HOME` 可指定独立目录。凭据与会话正文由 Codex 管理，本应用不复制登录令牌。
+首次使用时，打开左下角的设置，检查 Codex 连接和登录状态。应用会尝试寻找本机 Codex；没有自动找到时，手动选择 `codex.exe`，再按界面提示连接或通过 ChatGPT 登录。Windows 下应选择实际的 `.exe` 文件。
 
-本机共享范围取决于同一 `CODEX_HOME` 下 App Server 可枚举的持久会话，不会仅因相同账户自动接通 ChatGPT 云端或远程历史。查看历史只读，发送时才恢复线程并应用 Studio 设置。不要在多个客户端同时执行同一会话。
+## 开始聊天或处理项目
 
-编辑器与文件接口限制在已打开项目，拒绝项目外路径、目录联接逃逸及内部目录。文本文件上限 2 MB，保存使用版本校验。模型执行另受 Codex 沙箱与审批约束；普通聊天默认只读。退出应用会中止任务，重启不会自动重发。
+1. 选择左侧“普通聊天”，直接输入问题；需要处理代码时，点击“打开项目”选择本地目录。
+2. 新建会话，选择模型、推理强度和工作模式。需要先规划时选择“计划”，需要执行任务时选择“执行”。
+3. 输入任务，按 Enter 发送，Shift+Enter 换行。普通聊天默认只读，项目会话可在输入框中选择权限范围。
+4. 任务执行期间，可补充指令、把后续消息加入队列，或点击停止按钮结束当前会话的任务。
+5. 遇到命令、文件修改或额外权限请求时，在会话中的审批卡片查看并作出选择。
 
-## 开发与验证
+左侧历史列表可以搜索会话、筛选普通聊天或当前项目、查看归档记录。选择已有会话后，可以读取历史并继续对话。会话管理和更多设置可从右上角“功能”进入。
 
-开发需要 Node.js 24+、npm 和 Git。源码开发命令：
+多个会话可以同时执行，顶部任务条用于切换正在运行的会话。停止按钮只作用于当前会话；多个任务使用同一项目目录时会共享文件，工作区不会自动隔离。
+
+### 添加附件与引用
+
+- 点击输入框的 `+` 选择图片、音频或文件，也可以把本机文件拖入输入框。
+- 复制图片后，在输入框粘贴。没有本地路径的剪贴板图片支持 PNG/JPEG。
+- 打开项目后，输入 `@` 和文件名，从候选列表选择要引用的文件。
+- 在文件编辑器或差异视图中选择代码，再点击“引用文件”或“引用选区”，把上下文加入输入。
+
+每条消息最多添加 20 个附件，选择或拖入的单个附件不能超过 20 MB。文字草稿支持切换会话和重启恢复；附件列表暂不跨重启恢复。
+
+输入框支持以下斜杠命令。输入后可用方向键选择，按 Enter 或 Tab 确认，Esc 关闭候选列表。
+
+| 命令 | 用途 |
+| --- | --- |
+| `/plan` | 切换到计划模式 |
+| `/execute` | 切换到执行模式 |
+| `/search` | 打开项目文件区，搜索文件内容 |
+| `/review` | 打开项目变更区，进入审查操作 |
+| `/clear` | 清空当前输入文字 |
+
+### 编辑文件与搜索项目
+
+点击右上角“文件”打开工作区。在文件树中选择文件即可编辑，点击保存按钮或按 Ctrl+S 保存。磁盘内容被其他程序修改后，保存会提示冲突，可重新载入后比较。
+
+文件区顶部提供项目全文搜索。输入关键词后点击结果，可以打开文件并定位到对应行；工作区内可用 Ctrl+Shift+F 聚焦搜索。搜索按字面量匹配，不区分大小写，跳过内部目录、常见生成目录和二进制文件。结果达到上限时，缩小关键词范围后重试。
+
+编辑器支持不超过 2 MB 的 UTF-8 文本文件。切回窗口时，应用会刷新文件树、Git 状态和没有未保存修改的文件。
+
+### 管理 Git 变更与审查代码
+
+打开 Git 项目后，点击右上角“变更”：
+
+1. 在“变更”页查看文件差异，按需暂存或取消暂存。
+2. 填写提交说明，点击“提交暂存内容”。“恢复”会放弃指定文件的未暂存修改，执行前会弹出确认。
+3. 在“分支与历史”页创建或切换分支，查看最近的提交。切换分支前需要保持工作区干净。
+4. 在“审查”页选择未提交变更、基准分支、指定提交或自定义指令，启动代码审查。也可以在 Diff 中选行并写反馈，再把反馈加入输入框发送。
+5. 在“推送与 PR”页推送当前分支，或填写标题和说明创建草稿 PR。
+
+工作区差异对比暂存区，暂存区差异对比 HEAD。提交、分支、推送等仓库级操作需要打开 Git 仓库根目录；重命名或冲突的暂存处理使用终端完成。
+
+推送需要配置 `origin` 和 Git 认证。创建 PR 还需要安装并登录 GitHub CLI（`gh`），并先推送分支；推送和创建 PR 均会弹出确认。
+
+### 使用桌宠与调整设置
+
+点击 Ghost 按钮或关闭主窗口，会把工作台收起为透明桌宠，正在运行的任务继续执行。桌宠可以拖动；右键眼睛或点击对话按钮展开聊天，点击眼睛恢复工作台。
+
+桌宠和主窗口共享任务状态、会话选择及已有会话的文字草稿。从托盘菜单或桌宠电源按钮选择“退出”，才会真正结束应用；退出会中止运行中的任务。
+
+左下角设置可以修改人设、字号、动效和启动动画。开场动画可点击“跳过”或按 Esc 跳过。替换应用构建前，先从托盘退出旧实例，再重新启动。
+
+## 从源码运行
+
+开发环境需要 Windows、Node.js 24+、npm 和 Git。在仓库根目录执行：
 
 ```powershell
 npm.cmd ci
 npm.cmd run dev
 ```
 
-常规检查及构建：
+`npm.cmd run dev` 启动开发模式。需要运行生产构建时执行：
 
 ```powershell
-npm.cmd run check
 npm.cmd run build
-npm.cmd run check:ui
-npm.cmd run package:dir
-npm.cmd run check:package
-npm.cmd run check:icons
+npm.cmd run preview
 ```
 
-UI 验证与图标导出还需本机 Chrome；原生及图标检查需 Windows 桌面环境。这组检查使用模拟 IPC 或隔离数据，不发起真实模型任务。会消耗额度的 CLI/桌面检查单独列在 [开发文档](docs/DEVELOPMENT.md)。
+### 检查与打包
 
-`npm.cmd run package` 生成 NSIS 安装包，并更新 `dist/SHA256SUMS.txt`。当前没有发布者代码签名或自动更新。已记录验证的协议快照为 Codex `0.163.0-alpha.11.2`，更换 CLI 后应重新检查兼容性。
+| 命令 | 用途 |
+| --- | --- |
+| `npm.cmd run check` | 类型检查、后端测试、仓库与接口文档一致性检查 |
+| `npm.cmd run check:ui` | 使用模拟 IPC 检查浏览器界面，需要本机 Chrome |
+| `npm.cmd run check:workflows` | 在隔离数据与 Git 仓库中检查原生操作流程 |
+| `npm.cmd run package:dir` | 生成 `dist/win-unpacked/` 解压式程序 |
+| `npm.cmd run package` | 生成 Windows NSIS 安装包和校验清单 |
+| `npm.cmd run check:package` | 检查打包程序的预加载、编辑器、安全设置与桌宠 |
+
+界面和原生工作流检查前，先执行 `npm.cmd run build`；打包程序检查前，先生成对应构建。这些检查使用模拟 IPC 或隔离数据，不发起真实模型任务。会调用账户、执行真实任务的检查，以及图标和协议维护命令，见 [开发与维护文档](docs/DEVELOPMENT.md)。
+
+安装包、解压式 EXE 和 `app.asar` 的 SHA-256 校验值保存在 `dist/SHA256SUMS.txt`。
+
+## 数据与配置
+
+| 项目 | 位置或用途 |
+| --- | --- |
+| 应用数据 | 默认位于 `%APPDATA%/ghost-studio/`，保存设置、项目/会话引用和草稿 |
+| `GHOST_HOME` | 指定独立的应用数据目录，适合开发和隔离测试 |
+| `CODEX_HOME` | 由 Codex 管理，影响可读取的本机会话历史与配置 |
+| 登录凭据与会话正文 | 由 Codex 管理，Ghost Studio 不复制登录令牌 |
+
+本机历史共享以同一 `CODEX_HOME` 下 App Server 可枚举的持久会话为准，不会因登录相同账户而自动同步 ChatGPT 云端或其他电脑的历史。查看历史不会恢复执行；发送消息时才接续会话并应用工作台设置。不要在多个客户端同时执行同一会话。
+
+编辑器和文件接口限于已打开的项目目录，拒绝内部目录与目录联接逃逸；模型执行还受 Codex 沙箱和审批约束。更多适用范围见 [功能边界](docs/CODEX-PARITY.md)。
 
 ## 仓库结构
 
-| 目录 | 内容 |
+| 路径 | 内容 |
 | --- | --- |
-| `src/main/` | Electron、RPC、业务状态、文件边界与 SQLite |
-| `src/preload/` | 类型化 IPC 桥接 |
-| `src/renderer/` | React、C3 样式、Ghost、编辑器与终端 |
-| `src/shared/` | 共享类型、能力描述与已保存协议快照 |
-| `resources/` | 透明 PNG 和多尺寸 ICO |
-| `tests/`、`scripts/` | 自动测试、离线 UI 检查、诊断和构建工具 |
-| `docs/`、`licenses/` | 当前文档、历史记录、界面截图及许可 |
-| `out/` | 临时编译结果，Git 忽略 |
-| `dist/` | 正式安装包与解压式构建，通过 Git LFS 保存；SHA-256 清单为普通文本 |
-| `output/`、`.ghost-dev/`、`.reference/` | 本地概念图/验证产物、隔离测试数据及参考导出，Git 忽略 |
+| `src/main/` | Electron 主进程、Codex RPC、任务状态、文件操作与 SQLite |
+| `src/preload/` | 主进程与界面之间的类型化 IPC 桥接 |
+| `src/renderer/` | React 界面、桌宠、编辑器与终端 |
+| `src/shared/` | 共享类型、能力描述与协议快照 |
+| `resources/` | 应用与托盘图标 |
+| `tests/`、`scripts/` | 测试、验证、构建与维护脚本 |
+| `docs/` | 使用、开发、架构、功能边界与截图文档 |
+| `licenses/` | 第三方许可与依赖清单 |
+| `dist/` | 安装包、解压式程序及校验清单；二进制通过 Git LFS 保存 |
+| `out/`、`output/`、`.ghost-dev/` | 构建输出、验证产物和隔离测试数据，Git 忽略 |
 
-本目录是 Ghost-codex 正式项目。既有旧安装包、依赖缓存、概念图和测试数据库保留在原开发工作目录，未移入本发布目录或应用包。
+## 许可证与素材署名
 
-## 视觉来源
+项目自有代码和文档采用 [MIT 许可证](LICENSE)。第三方内容保留各自许可证；游戏名称仅用作命名与创作参考，不授予游戏素材或商标的使用权。公开构建的启动动画由代码绘制，不包含游戏启动视频。
 
-眼睛 SVG 与几何参数改编自 [Fairy-DSH](https://github.com/Chengzhibense/Fairy-DSH) 的固定提交 `d639887a386b0de6fef2e61c97dc268631854591`，包括本项目的银灰材质与环纹调整。署名、Apache-2.0 许可和 NOTICE 见 [第三方说明](THIRD_PARTY_NOTICES.md) 与 `licenses/`。Windows 图标直接从同一 SVG 导出。
+[贡献指南](CONTRIBUTING.md) · [安全反馈](SECURITY.md)
 
-默认人设改编自同一提交的 `.agent-presets/fairy/agent.cordis.yml` 公开 persona 配置，保留表达与行为核心并适配 Ghost 名称及 Studio 能力；未修改过的旧默认设置会一次性升级，自定义人设和关闭状态保留。详见 [默认设置更新](docs/CHANGES-DEFAULTS-RELEASE.md)。
+眼睛 SVG 和几何参数改编自 [Fairy-DSH](https://github.com/Chengzhibense/Fairy-DSH) 的固定提交 `d639887a386b0de6fef2e61c97dc268631854591`，应用、桌宠、托盘和 Windows 图标共用这套视觉。
+
+默认人设改编自同一提交的 `.agent-presets/fairy/agent.cordis.yml` 公开配置，并适配 Ghost 的名称与工作台能力。具体归属、Apache-2.0 许可和 NOTICE 见 [第三方说明](THIRD_PARTY_NOTICES.md) 与 `licenses/`。

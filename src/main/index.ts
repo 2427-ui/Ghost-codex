@@ -1,12 +1,13 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, screen, session as electronSession } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { realpath, stat, readFile } from 'node:fs/promises'
+import { realpath, stat } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { StudioService } from './service'
 import { Storage } from './storage'
-import { tree, readDocument, saveDocument, gitState, diffDocument } from './files'
-import type { Settings, FileDocument, InputAttachment, SendOptions } from '../shared/types'
+import { tree, readDocument, saveDocument, gitState, diffDocument, searchProject, safePath, gitDetails, gitAction } from './files'
+import { importAttachments } from './attachments'
+import type { Settings, FileDocument, GitAction, SendOptions, InputAttachment } from '../shared/types'
 import { PET_SIZE, collapsedPetBounds, fitPetBounds, resizedPetBounds } from './pet-window'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -43,6 +44,13 @@ async function createWindow(isMini: boolean) {
   let bounds = validBounds(store.get(isMini ? 'miniBounds' : 'mainBounds', null), isMini ? PET_SIZE.width : 1440, isMini ? PET_SIZE.height : 940)
   if (isMini) bounds = fitPetBounds(collapsedPetBounds(bounds), screen.getDisplayMatching(bounds).workArea)
   const window = new BrowserWindow({ ...bounds, minWidth: isMini ? PET_SIZE.width : 1000, minHeight: isMini ? PET_SIZE.height : 680, show: false, frame: false, transparent: isMini, hasShadow: !isMini, backgroundColor: isMini ? '#00000000' : '#ffffff', icon: join(here, '../../resources/ghost.ico'), title: 'Ghost Studio', autoHideMenuBar: true, resizable: !isMini, alwaysOnTop: isMini, skipTaskbar: isMini, webPreferences: { preload: join(here, '../preload/index.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false } })
+  // Windows does not reliably map BrowserWindow.hide() to document.hidden.
+  const publishVisibility = () => {
+    if (!window.isDestroyed()) window.webContents.send('ghost:event', { type: 'visibility', visible: window.isVisible() && !window.isMinimized() })
+  }
+  window.on('show', publishVisibility); window.on('hide', publishVisibility)
+  window.on('minimize', publishVisibility); window.on('restore', publishVisibility)
+  window.webContents.on('did-finish-load', publishVisibility)
   window.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:\/\//.test(url)) shell.openExternal(url).catch(() => {}); return { action: 'deny' } })
   window.webContents.on('will-navigate', event => event.preventDefault())
   const persist = () => {
@@ -70,7 +78,7 @@ function validateSettings(patch: Partial<Settings>) {
     fontSize: v => typeof v === 'number' && v >= 12 && v <= 20,
     sidebarWidth: v => typeof v === 'number' && v >= 200 && v <= 360,
     detailWidth: v => typeof v === 'number' && v >= 360 && v <= 1200,
-    personaEnabled: v => typeof v === 'boolean', mascotVisible: v => typeof v === 'boolean',
+    personaEnabled: v => typeof v === 'boolean', mascotVisible: v => typeof v === 'boolean', startupAnimation: v => typeof v === 'boolean',
     lastProjectId: v => v === null || typeof v === 'string' && !!store.projects().find(p => p.id === v),
     lastSessionId: v => v === null || typeof v === 'string' && !!store.sessions().find(s => s.id === v)
   }
@@ -121,25 +129,32 @@ function registerIpc() {
   handle('syncHistory', () => service.syncHistory())
   handle('history', (id: string) => service.history(id))
   handle('send', (id: string, text: string, options?: SendOptions) => service.send(id, text, options))
+  handle('followup', (id: string, text: string, queue: boolean, attachments: InputAttachment[]) => service.followup(id, text, queue === true, attachments))
   handle('capability', (method: string, params?: Record<string, any>) => service.capability(method, params))
   handle('chooseAttachments', async () => {
     const result = await dialog.showOpenDialog(main!, { title: '添加图片、音频或项目文件', properties: ['openFile', 'multiSelections'] })
     if (result.canceled) return []
-    if (result.filePaths.length > 20) throw new Error('每次最多添加 20 个附件。')
-    const files: InputAttachment[] = []
-    for (const chosen of result.filePaths) {
-      const path = await realpath(chosen), info = await stat(path)
-      if (!info.isFile() || info.size > 20 * 1024 * 1024) throw new Error('附件须为不超过 20 MB 的文件。')
-      const name = path.split(/[\\/]/).at(-1) || path
-      const extension = name.split('.').at(-1)?.toLowerCase() || ''
-      const type = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(extension) ? 'image' : ['wav', 'mp3', 'm4a', 'ogg', 'flac'].includes(extension) ? 'audio' : 'file'
-      const preview = type === 'image' ? `data:image/${extension === 'jpg' ? 'jpeg' : extension};base64,${(await readFile(path)).toString('base64')}` : undefined
-      service.attachmentPaths.add(path)
-      files.push({ id: randomUUID(), path, name, type, preview })
-    }
-    return files
+    return importAttachments(store.directory, result.filePaths.map(path => ({ path, name: '' })), service.attachmentPaths)
   })
-  handle('interrupt', () => service.interrupt())
+  handle('importAttachments', (_files: Parameters<typeof importAttachments>[1]) => importAttachments(store.directory, _files, service.attachmentPaths))
+  handle('reference', async (id: string, path: string) => {
+    const absolute = await safePath(projectPath(id), path)
+    if (!(await stat(absolute)).isFile()) throw new Error('请选择文件。')
+    service.attachmentPaths.add(absolute)
+    return { id: randomUUID(), path: absolute, name: path, type: 'file' }
+  })
+  handle('search', (id: string, query: string, filenames: boolean) => searchProject(projectPath(id), query, filenames === true))
+  handle('gitDetails', (id: string) => gitDetails(projectPath(id)))
+  handle('gitAction', async (id: string, request: GitAction) => {
+    const root = projectPath(id)
+    if (['restore', 'push', 'pr'].includes(request?.action)) {
+      const message = request.action === 'restore' ? `恢复 ${'path' in request ? request.path : ''} 到暂存区版本？未暂存的修改将丢失。` : request.action === 'push' ? `推送 ${root} 的当前分支到 origin？` : `创建草稿 PR：${'title' in request ? request.title : ''}？`
+      const result = await dialog.showMessageBox(main!, { type: 'question', title: 'Git 操作', message, buttons: ['取消', '确认'], defaultId: 0, cancelId: 0 })
+      if (result.response !== 1) throw new Error('已取消 Git 操作。')
+    }
+    return gitAction(root, request)
+  })
+  handle('interrupt', (id?: string) => service.interrupt(id))
   handle('decide', (id: string | number, decision: string | Record<string, unknown>) => service.decide(id, decision))
   handle('tree', (id: string, path: string) => tree(projectPath(id), path))
   handle('read', (id: string, path: string) => readDocument(projectPath(id), path))
@@ -147,7 +162,8 @@ function registerIpc() {
   handle('git', (id: string) => gitState(projectPath(id)))
   handle('diff', (id: string, path: string, staged: boolean) => diffDocument(projectPath(id), path, staged === true))
   handle('draft', (id: string, text?: string) => {
-    store.session(id)
+    if (!id.startsWith('new:')) store.session(id)
+    else if (id !== 'new:chat') store.project(id.slice(4))
     if (text !== undefined) { if (typeof text !== 'string' || text.length > 100000) throw new Error('草稿过长。'); store.set(`draft:${id}`, text) }
     return store.get(`draft:${id}`, '')
   })
@@ -220,9 +236,9 @@ app.whenReady().then(async () => {
   service = new StudioService(store)
   registerIpc()
   main = await createWindow(false)
-  mini = await createWindow(true)
-  main.show()
   service.on('event', event => { for (const window of windows()) window.webContents.send('ghost:event', event) })
+  main.show()
+  mini = await createWindow(true)
   // Use the C3 vector's raster export; native tray icons do not support SVG.
   const icon = nativeImage.createFromPath(join(here, '../../resources/ghost.png'))
   if (!icon.isEmpty()) {

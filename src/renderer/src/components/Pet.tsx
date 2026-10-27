@@ -144,7 +144,7 @@ export function Pet() {
         const moved = drag.current.moved; drag.current = null
         event.currentTarget.releasePointerCapture(event.pointerId)
         void window.ghost.petDrag('end').then(() => { if (!moved) void restore() }).catch(onError)
-      }} onPointerCancel={() => { drag.current = null; void window.ghost.petDrag('end').catch(onError) }} onClick={event => { if (event.detail === 0) void restore() }} onContextMenu={event => { event.preventDefault(); void toggle() }}><Ghost small activity={activity} motion={snapshot?.settings.motion || 'full'} /></button>
+      }} onPointerCancel={() => { drag.current = null; void window.ghost.petDrag('end').catch(onError) }} onClick={event => { if (event.detail === 0) void restore() }} onContextMenu={event => { event.preventDefault(); void toggle() }}><Ghost small activity={activity} connection={runtime?.connection} motion={snapshot?.settings.motion || 'full'} /></button>
       <div className="pet-tools" data-pet-interactive><button className={expanded ? 'active' : ''} aria-label="展开桌宠对话" title="和 Ghost 聊天" onClick={() => { void toggle() }}><MessageSquare size={15} /></button><i /><button aria-label="从桌宠打开工作台" title="打开工作台" onClick={() => { void restore() }}><ArrowUpRight size={17} /></button>{running && <><i /><button aria-label="停止当前任务" title="停止任务" disabled={!runtime?.activeTurnId} onClick={() => window.ghost.interrupt().catch(onError)}><Square size={12} /></button></>}<i /><button aria-label="退出 Ghost" title="退出 Ghost" onClick={() => window.ghost.window('quit').catch(onError)}><Power size={13} /></button></div>
     </div>
   </div>

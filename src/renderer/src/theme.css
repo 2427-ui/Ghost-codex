@@ -96,40 +96,6 @@ input[type=range] { accent-color: #555; }
 .quick-actions span { color: #6c6c6c; }
 .quick-actions svg:last-child { color: #555; }
 
-/* A shared thin rim and refractive diagonal give glass depth on a white canvas. */
-.new-session, .quick-actions button, .composer-card, .primary-button, .secondary-button,
-.send-button, .pet-status, .pet-tools {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  color: var(--ink);
-}
-.new-session { position: relative; }
-.new-session:before, .quick-actions button:before, .composer-card:before {
-  content: "";
-  position: absolute;
-  inset: 2px;
-  border: 1px solid #ffffffb3;
-  border-bottom-color: #ffffff55;
-  border-radius: inherit;
-  pointer-events: none;
-}
-.new-session:hover:not(:disabled), .quick-actions button:hover:not(:disabled),
-.primary-button:hover:not(:disabled), .secondary-button:hover:not(:disabled), .send-button:hover:not(:disabled) {
-  color: #171717;
-  background: linear-gradient(135deg, #fff, #ffffff9c 44%, #dddddd40 70%, #fff);
-  border-color: #99999966;
-  box-shadow: inset 0 1px #fff, inset 0 -1px #00000014, 0 6px 18px #0000000c;
-  transform: translateY(-1px);
-}
-.new-session:active:not(:disabled), .quick-actions button:active:not(:disabled),
-.primary-button:active:not(:disabled), .secondary-button:active:not(:disabled), .send-button:active:not(:disabled) {
-  transform: translateY(1px);
-  filter: none;
-  box-shadow: inset 0 2px 4px #00000010, inset 0 0 0 1px #ffffffb0;
-}
 .primary-button, .secondary-button { border-radius: 10px; }
 .primary-button { border-color: #92929270; font-weight: 600; }
 .composer-card { border-radius: 19px; }

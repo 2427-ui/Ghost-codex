@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { HISTORY_SOURCES, importThread, readNativeRegistry } from './history'
 import { executeCapability } from './capability-service'
-import type { Approval, HistorySync, Item, Runtime, SendOptions, Session, Settings, StudioEvent } from '../shared/types'
+import type { Approval, HistorySync, Item, Runtime, SendOptions, Session, Settings, StudioEvent, ThreadTask, InputAttachment } from '../shared/types'
 
 export function normalizeItem(item: any, turnId?: string): Item {
   return {
@@ -21,7 +21,7 @@ export class StudioService extends EventEmitter {
   approvals: Approval[] = []
   runtime: Runtime = { connection: 'disconnected', executable: '', version: '', account: null, models: [], limits: null, activity: 'idle', activeThreadId: null, activeTurnId: null, task: '', error: null }
   private connecting: Promise<void> | null = null
-  private starting = false
+  private starting = new Set<string>()
   private resuming = new Set<string>()
   private sessionOptions = new Map<string, string>()
   private freshThreads = new Set<string>()
@@ -33,10 +33,16 @@ export class StudioService extends EventEmitter {
   constructor(readonly storage: Storage) { super() }
   private emitEvent(event: StudioEvent) { this.emit('event', event) }
   private update(patch: Partial<Runtime>) { this.runtime = { ...this.runtime, ...patch }; this.emitEvent({ type: 'runtime', runtime: this.runtime }) }
+  isRunning(id?: string) { return id ? this.starting.has(id) || ['running', 'approval'].includes(this.runtime.tasks?.[id]?.activity || '') : this.starting.size > 0 || Object.values(this.runtime.tasks || {}).some(t => ['running', 'approval'].includes(t.activity)) }
+  private updateTask(id: string, patch: Partial<ThreadTask>) {
+    const tasks = { ...this.runtime.tasks, [id]: { activity: 'idle' as const, activeTurnId: null, task: '', error: null, ...this.runtime.tasks?.[id], ...patch } }
+    const active = Object.entries(tasks).find(([, task]) => ['running', 'approval'].includes(task.activity)) || [id, tasks[id]] as const
+    this.update({ tasks, activeThreadId: active[0], ...active[1] })
+  }
   snapshot() { return { settings: this.storage.settings(), projects: this.storage.projects(), sessions: this.storage.sessions(), runtime: this.runtime, approvals: this.approvals, historySync: this.historySync } }
   connect() {
     if (this.connecting) return this.connecting
-    if (this.runtime.activity === 'running' || this.runtime.activity === 'approval') throw new Error('请先停止当前任务，再重新连接。')
+    if (this.isRunning() || this.runtime.activity === 'running' || this.runtime.activity === 'approval') throw new Error('请先停止当前任务，再重新连接。')
     this.connecting = this.openConnection().finally(() => { this.connecting = null })
     return this.connecting
   }
@@ -48,6 +54,8 @@ export class StudioService extends EventEmitter {
     this.sessionOptions.clear()
     this.freshThreads.clear()
     this.items.clear()
+    this.starting.clear()
+    this.update({ tasks: {} })
     this.approvals = []
     this.emitEvent({ type: 'approvals', approvals: [] })
     this.update({ connection: 'connecting', error: null, activeThreadId: null, activeTurnId: null, activity: 'idle' })
@@ -62,7 +70,9 @@ export class StudioService extends EventEmitter {
         this.approvals = []
         this.resuming.clear()
         this.emitEvent({ type: 'approvals', approvals: [] })
-        this.update({ connection: 'disconnected', activity: 'error', activeTurnId: null, activeThreadId: null, error })
+        const tasks = Object.fromEntries(Object.entries(this.runtime.tasks || {}).map(([id, task]) => [id, { ...task, activity: 'error' as const, activeTurnId: null, error }]))
+        this.starting.clear()
+        this.update({ tasks, connection: 'disconnected', activity: 'error', activeTurnId: null, activeThreadId: null, error })
       })
       await client.start()
       this.update({ connection: 'connected', executable, version })
@@ -123,7 +133,7 @@ export class StudioService extends EventEmitter {
       } catch { /* older versions retain the desktop/cwd compatibility adapter */ }
       let count = 0
       const visibleIds = new Set(this.freshThreads)
-      if (this.runtime.activeThreadId && ['running', 'approval'].includes(this.runtime.activity)) visibleIds.add(this.runtime.activeThreadId)
+      for (const id of Object.keys(this.runtime.tasks || {})) if (this.isRunning(id)) visibleIds.add(id)
       for (const archived of [false, true]) {
         let cursor: string | undefined
         const visited = new Set<string>()
@@ -138,7 +148,7 @@ export class StudioService extends EventEmitter {
       // Only reconcile after both complete lists succeeded. Preserve fresh or live threads,
       // whose rollout may not have been indexed when the snapshot started.
       for (const id of this.freshThreads) visibleIds.add(id)
-      if (this.runtime.activeThreadId && ['running', 'approval'].includes(this.runtime.activity)) visibleIds.add(this.runtime.activeThreadId)
+      for (const id of Object.keys(this.runtime.tasks || {})) if (this.isRunning(id)) visibleIds.add(id)
       this.storage.reconcileSessions(visibleIds)
       this.historySync = { state: 'ready', updatedAt: Date.now(), count, error: null }
     } catch (error) {
@@ -152,9 +162,9 @@ export class StudioService extends EventEmitter {
     return { cwd: cwd || (projectId ? this.storage.project(projectId).path : undefined), sandbox: projectId ? settings.permission : 'read-only', approvalPolicy: 'on-request', approvalsReviewer: 'user', developerInstructions: [settings.personaEnabled ? settings.persona : '', !projectId ? '当前为普通聊天，没有授权任何项目目录。默认直接回答问题；没有明确任务时不要探索本地文件或执行命令。' : ''].filter(Boolean).join('\n') }
   }
   capability(method: string, params?: Record<string, any>) { return executeCapability(this, method, params) }
-  beginActivity(threadId: string, task: string) { this.update({ activity: 'running', activeThreadId: threadId, activeTurnId: null, task, error: null }) }
-  finishActivity() { this.update({ activity: 'completed', activeTurnId: null }) }
-  failActivity(error: string) { this.update({ activity: 'error', activeTurnId: null, error }) }
+  beginActivity(threadId: string, task: string) { this.updateTask(threadId, { activity: 'running', activeTurnId: null, task, error: null }) }
+  finishActivity(threadId = this.runtime.activeThreadId) { if (threadId) this.updateTask(threadId, { activity: 'completed', activeTurnId: null }) }
+  failActivity(error: string, threadId = this.runtime.activeThreadId) { if (threadId) this.updateTask(threadId, { activity: 'error', activeTurnId: null, error }) }
   async trackThread(thread: any, fresh = false) {
     const registry = await readNativeRegistry(this.storage)
     for (const p of this.storage.projects()) if (p.nativeId) registry.projects.set(p.nativeId, p.id)
@@ -172,7 +182,6 @@ export class StudioService extends EventEmitter {
     this.resuming.add(id)
   }
   async createSession(projectId: string | null): Promise<Session> {
-    if (this.starting || this.runtime.activeTurnId || ['running', 'approval'].includes(this.runtime.activity)) throw new Error('请等待当前任务完成。')
     const client = this.requireClient()
     const settings = this.storage.settings()
     if (projectId !== null && typeof projectId !== 'string') throw new Error('无效项目。')
@@ -203,7 +212,7 @@ export class StudioService extends EventEmitter {
       cursor = page.nextCursor || undefined
     } while (cursor)
     const merged = new Map(records.map(item => [item.id, item]))
-    if (this.runtime.activeThreadId === sessionId && ['running', 'approval'].includes(this.runtime.activity)) {
+    if (this.isRunning(sessionId)) {
       for (const [id, item] of this.items.get(sessionId) || []) if (!merged.has(id) || item.status === 'inProgress') merged.set(id, item)
     }
     this.items.set(sessionId, merged)
@@ -211,10 +220,10 @@ export class StudioService extends EventEmitter {
   }
   async send(sessionId: string, text: string, options: SendOptions = {}) {
     if (typeof text !== 'string' || (!text.trim() && !options.attachments?.length) || text.length > 100000) throw new Error('请输入不超过 100,000 字符的任务。')
-    if (this.starting || this.runtime.activeTurnId || ['running', 'approval'].includes(this.runtime.activity)) throw new Error('已有任务正在执行，请等待完成或停止。')
+    if (this.isRunning(sessionId)) throw new Error('这个会话已有任务正在执行，请等待完成或停止。')
     const session = this.storage.session(sessionId)
     const client = this.requireClient()
-    this.starting = true
+    this.starting.add(sessionId)
     try {
       // Resuming also applies the current editable persona to subsequent turns.
       if (session.archived) throw new Error('这是归档会话。请先在原生 Codex 中取消归档并同步，再继续对话。')
@@ -228,14 +237,9 @@ export class StudioService extends EventEmitter {
         this.resuming.add(sessionId)
         this.sessionOptions.set(sessionId, JSON.stringify(threadOptions))
       }
-      this.update({ activity: 'running', activeThreadId: sessionId, activeTurnId: null, task: text.slice(0, 120), error: null })
+      this.beginActivity(sessionId, text.slice(0, 120))
       const settings = this.storage.settings()
-      const input: any[] = text.trim() ? [{ type: 'text', text, text_elements: [] }] : []
-      if ((options.attachments?.length || 0) > 20) throw new Error('每次最多添加 20 个附件。')
-      for (const file of options.attachments || []) {
-        if (file.type !== 'skill' && !this.attachmentPaths.has(file.path)) throw new Error('请通过附件选择器授权文件。')
-        input.push(file.type === 'image' ? { type: 'localImage', path: file.path } : file.type === 'audio' ? { type: 'localAudio', path: file.path } : { type: file.type === 'skill' ? 'skill' : 'mention', name: file.name, path: file.path })
-      }
+      const input = this.buildInput(text, options.attachments)
       const model = settings.model || this.runtime.models.find(m => m.isDefault)?.model || this.runtime.models[0]?.model
       await client.request('turn/start', { threadId: sessionId, input, ...(settings.model ? { model: settings.model } : {}), ...(model ? { collaborationMode: { mode: options.mode || settings.mode || 'default', settings: { model, reasoning_effort: settings.effort, developer_instructions: null } } } : {}), effort: settings.effort, approvalPolicy: 'on-request', approvalsReviewer: 'user', sandboxPolicy: !session.projectId || settings.permission === 'read-only' ? { type: 'readOnly', networkAccess: false } : { type: 'workspaceWrite', writableRoots: [session.cwd || this.storage.project(session.projectId).path], networkAccess: false, excludeTmpdirEnvVar: true, excludeSlashTmp: true } })
       // The response can precede turn/started. Only enable interruption once the server confirms the live turn.
@@ -244,18 +248,41 @@ export class StudioService extends EventEmitter {
       if (session.title === '新的会话') await client.request('thread/name/set', { threadId: sessionId, name: title }).catch(() => {})
       this.storage.set(`draft:${sessionId}`, '')
       this.emitEvent({ type: 'data' })
-    } catch (error) { this.update({ activity: 'error', activeTurnId: null, error: (error as Error).message }); throw error }
-    finally { this.starting = false }
+    } catch (error) { this.failActivity((error as Error).message, sessionId); throw error }
+    finally { this.starting.delete(sessionId) }
   }
-  async interrupt() {
-    const { activeThreadId, activeTurnId } = this.runtime
+  private buildInput(text: string, attachments: InputAttachment[] = []) {
+    if (typeof text !== 'string' || text.length > 100000 || !Array.isArray(attachments) || (!text.trim() && !attachments.length)) throw new Error('请输入有效的任务内容。')
+    if (attachments.length > 20) throw new Error('每次最多添加 20 个附件。')
+    const input: any[] = text.trim() ? [{ type: 'text', text, text_elements: [] }] : []
+    for (const file of attachments) {
+      if (!file || !['image', 'audio', 'file', 'skill'].includes(file.type) || typeof file.path !== 'string' || typeof file.name !== 'string') throw new Error('无效附件。')
+      if (file.type !== 'skill' && !this.attachmentPaths.has(file.path)) throw new Error('请通过附件选择器或拖放授权文件。')
+      input.push(file.type === 'image' ? { type: 'localImage', path: file.path } : file.type === 'audio' ? { type: 'localAudio', path: file.path } : { type: file.type === 'skill' ? 'skill' : 'mention', name: file.name, path: file.path })
+    }
+    return input
+  }
+  async followup(sessionId: string, text: string, queue: boolean, attachments: InputAttachment[] = []) {
+    this.storage.session(sessionId)
+    const input = this.buildInput(text, attachments)
+    if (queue) await this.capability('thread/queue/add', { threadId: sessionId, input, clientUserMessageId: randomUUID() })
+    else {
+      const expectedTurnId = this.runtime.tasks?.[sessionId]?.activeTurnId
+      if (!expectedTurnId || !this.isRunning(sessionId)) throw new Error('当前会话没有可补充指令的任务。')
+      await this.capability('turn/steer', { threadId: sessionId, expectedTurnId, input })
+    }
+    this.storage.set(`draft:${sessionId}`, '')
+  }
+  async interrupt(threadId = this.runtime.activeThreadId || undefined) {
+    const activeThreadId = threadId, activeTurnId = threadId ? this.runtime.tasks?.[threadId]?.activeTurnId : null
     if (!activeThreadId || !activeTurnId) throw new Error('任务尚未启动完成，请稍后再停止。')
     await this.requireClient().request('turn/interrupt', { threadId: activeThreadId, turnId: activeTurnId })
   }
   private serverRequest(message: any) {
     if (['item/commandExecution/requestApproval', 'item/fileChange/requestApproval', 'item/tool/requestUserInput', 'item/permissions/requestApproval', 'mcpServer/elicitation/request', 'item/tool/call', 'applyPatchApproval', 'execCommandApproval'].includes(message.method)) {
       this.approvals.push({ id: message.id, method: message.method, ...message.params })
-      this.update({ activity: 'approval' })
+      const id = message.params.threadId || this.runtime.activeThreadId
+      if (id) this.updateTask(id, { activity: 'approval' })
       this.emitEvent({ type: 'approvals', approvals: this.approvals })
     } else this.client?.reject(message.id, `Ghost Studio 不支持该交互：${message.method}`)
   }
@@ -289,7 +316,7 @@ export class StudioService extends EventEmitter {
     }
     this.approvals = this.approvals.filter(a => a.id !== id)
     this.emitEvent({ type: 'approvals', approvals: this.approvals })
-    this.update({ activity: this.approvals.length ? 'approval' : 'running' })
+    this.updateTask(approval.threadId, { activity: this.approvals.some(a => a.threadId === approval.threadId) ? 'approval' : 'running' })
   }
   private notification(method: string, params: Record<string, any>) {
     const { threadId, turnId, item } = params
@@ -297,28 +324,31 @@ export class StudioService extends EventEmitter {
     if (method === 'account/login/completed' && params.success) { this.loginId = null; this.refreshAccount().catch(() => {}) }
     if (method === 'account/updated') this.refreshAccount().catch(() => {})
     if (method === 'account/rateLimits/updated') this.update({ limits: params.rateLimits })
-    if (method === 'turn/started' && threadId === this.runtime.activeThreadId) this.update({ activity: 'running', activeTurnId: params.turn.id })
-    if (method === 'turn/completed' && threadId === this.runtime.activeThreadId && this.runtime.activity !== 'completed' && (!this.runtime.activeTurnId || params.turn.id === this.runtime.activeTurnId)) {
+    if (method === 'turn/started' && this.runtime.tasks?.[threadId]) this.updateTask(threadId, { activity: 'running', activeTurnId: params.turn.id })
+    const task = this.runtime.tasks?.[threadId]
+    if (method === 'turn/completed' && task?.activeTurnId && task.activity !== 'completed' && params.turn.id === task.activeTurnId) {
       this.approvals = this.approvals.filter(a => a.threadId !== threadId)
       this.emitEvent({ type: 'approvals', approvals: this.approvals })
-      this.update({ activity: params.turn.status === 'completed' ? 'completed' : params.turn.status === 'interrupted' ? 'interrupted' : 'error', activeTurnId: null, error: params.turn.error?.message || null })
+      this.updateTask(threadId, { activity: params.turn.status === 'completed' ? 'completed' : params.turn.status === 'interrupted' ? 'interrupted' : 'error', activeTurnId: null, error: params.turn.error?.message || null })
     }
     if (method === 'serverRequest/resolved') {
+      const resolved = this.approvals.find(a => a.id === params.requestId)
       this.approvals = this.approvals.filter(a => a.id !== params.requestId)
       this.emitEvent({ type: 'approvals', approvals: this.approvals })
-      if (!this.approvals.length && this.runtime.activity === 'approval') this.update({ activity: 'running' })
+      if (resolved && !this.approvals.some(a => a.threadId === resolved.threadId) && this.isRunning(resolved.threadId)) this.updateTask(resolved.threadId, { activity: 'running' })
     }
     if (threadId && (method === 'item/started' || method === 'item/completed') && item) {
       if (!this.items.has(threadId)) this.items.set(threadId, new Map())
       this.items.get(threadId)!.set(item.id, normalizeItem(item, turnId))
-      if (method === 'item/completed' && item.type === 'exitedReviewMode' && threadId === this.runtime.activeThreadId) this.finishActivity()
+      if (method === 'item/completed' && item.type === 'exitedReviewMode' && this.isRunning(threadId) && (!turnId || turnId === task?.activeTurnId)) this.finishActivity(threadId)
     }
-    if (method === 'thread/compacted' && threadId === this.runtime.activeThreadId) this.finishActivity()
-    if (threadId && method === 'item/agentMessage/delta') {
+    if (method === 'thread/compacted' && this.isRunning(threadId)) this.finishActivity(threadId)
+    if (threadId && ['item/agentMessage/delta', 'item/commandExecution/outputDelta', 'item/reasoning/summaryTextDelta'].includes(method)) {
       if (!this.items.has(threadId)) this.items.set(threadId, new Map())
       const items = this.items.get(threadId)!
-      const existing = items.get(params.itemId) || { id: params.itemId, type: 'agentMessage', text: '', turnId }
-      items.set(params.itemId, { ...existing, text: existing.text + params.delta, status: 'inProgress' })
+      const type = method.includes('commandExecution') ? 'commandExecution' : method.includes('reasoning') ? 'reasoning' : 'agentMessage'
+      const existing: Item = items.get(params.itemId) || { id: params.itemId, type, text: '', turnId }
+      items.set(params.itemId, { ...existing, ...(type === 'commandExecution' ? { output: (existing.output || '') + params.delta } : { text: existing.text + params.delta }), status: 'inProgress' })
     }
     this.emitEvent({ type: 'notification', method, params })
   }

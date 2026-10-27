@@ -78,6 +78,25 @@ test('persona upgrade replaces only the previous default and preserves opt-out a
   } finally { await rm(directory, { recursive: true, force: true }) }
 })
 
+test('startup preference defaults for old settings and preserves custom settings across restart', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ghost-startup-'))
+  try {
+    let storage = new Storage(directory)
+    storage.set('settings', { fontSize: 20, persona: '自定义 Ghost', motion: 'reduced' })
+    storage.close()
+    storage = new Storage(directory)
+    assert.equal(storage.settings().startupAnimation, true)
+    storage.updateSettings({ startupAnimation: false })
+    storage.close()
+    storage = new Storage(directory)
+    assert.equal(storage.settings().startupAnimation, false)
+    assert.equal(storage.settings().fontSize, 20)
+    assert.equal(storage.settings().persona, '自定义 Ghost')
+    assert.equal(storage.settings().motion, 'reduced')
+    storage.close()
+  } finally { await rm(directory, { recursive: true, force: true }) }
+})
+
 test('legacy sessions migrate without losing project links, settings or drafts', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ghost-migration-'))
   try {

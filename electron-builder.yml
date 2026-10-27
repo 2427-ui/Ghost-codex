@@ -6,8 +6,12 @@ files:
   - out/**/*
   - package.json
   - THIRD_PARTY_NOTICES.md
+  - LICENSE
   - licenses/**/*
   - resources/**/*
+  - '!node_modules/monaco-editor/**/*'
+  - '!node_modules/@monaco-editor/**/*'
+  - '!node_modules/dompurify/**/*'
 asar: true
 win:
   target:

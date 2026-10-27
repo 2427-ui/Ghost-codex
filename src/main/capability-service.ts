@@ -74,12 +74,12 @@ export async function executeCapability(service: StudioService, method: string, 
     if (!(queue.data || []).some((q: any) => q.id === params.queuedSubmissionId)) throw new Error('这条消息已被原生队列取走或移除，请刷新队列。')
   }
   if (startsTask) {
-    if (['running', 'approval'].includes(service.runtime.activity)) throw new Error('请先等待或停止当前任务。')
-    if (threadId) await service.prepareThread(threadId)
+    if (service.isRunning(threadId)) throw new Error('请先等待或停止当前会话任务。')
     service.beginActivity(threadId, info.title)
   } else if (threadId && ['thread/goal/set', 'thread/settings/update', 'thread/memoryMode/set', 'turn/settings/update', 'thread/inject_items', 'thread/realtime/start'].includes(method)) await service.prepareThread(threadId)
-  if (['thread/revert', 'thread/delete', 'thread/archive', 'thread/unarchive', 'thread/fork'].includes(method) && threadId === service.runtime.activeThreadId && ['running', 'approval'].includes(service.runtime.activity)) throw new Error('当前会话仍在运行，请先停止。')
+  if (['thread/revert', 'thread/delete', 'thread/archive', 'thread/unarchive', 'thread/fork'].includes(method) && service.isRunning(threadId)) throw new Error('当前会话仍在运行，请先停止。')
   try {
+    if (startsTask && threadId) await service.prepareThread(threadId)
     const result = await client.request(method, wireParams, method === 'command/exec' ? (params.disableTimeout ? 24 * 60 * 60 * 1000 : Math.max(90000, (params.timeoutMs || 0) + 15000)) : 90000)
     if (method === 'thread/metadata/update' && typeof params.projectId === 'string') {
       const session = service.storage.sessions().find(s => s.id === threadId)
@@ -91,7 +91,7 @@ export async function executeCapability(service: StudioService, method: string, 
     if (method === 'account/logout') await service.refreshAccount()
     return redact(result)
   } catch (error) {
-    if (startsTask) service.failActivity((error as Error).message)
+    if (startsTask) service.failActivity((error as Error).message, threadId)
     throw error
   }
 }

@@ -52,7 +52,7 @@ test('Git handles nested project roots, staged/working diffs, untracked files an
     const status = await gitState(root)
     assert.equal(status.isRepo, true)
     assert.deepEqual(status.entries.map(e => e.path).sort(), ['hello.ts', 'new.ts'])
-    assert.deepEqual(await diffDocument(root, 'hello.ts', false), { path: 'hello.ts', original: 'original\n', modified: 'working\n' })
+    assert.deepEqual(await diffDocument(root, 'hello.ts', false), { path: 'hello.ts', original: 'staged\n', modified: 'working\n' })
     assert.equal((await diffDocument(root, 'hello.ts', true)).modified, 'staged\n')
     assert.equal((await diffDocument(root, 'new.ts', false)).original, '')
     await unlink(join(root, 'hello.ts'))

@@ -1,0 +1,30 @@
+.startup-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgb(255 255 255 / var(--scene-opacity, 1)); color: #202020;
+  opacity: var(--startup-opacity, 1);
+}
+.startup-identity { position: absolute; top: var(--wordmark-y, 73%); left: var(--intro-x, 50%); transform: translate(-50%, -50%); text-align: center; opacity: var(--identity, 0); }
+.startup-identity > span { display: block; font: 10px Consolas, monospace; letter-spacing: 5px; color: #737373; }
+.startup-identity strong { display: block; margin: 14px 0; font: 800 56px/1.1 Arial, sans-serif; letter-spacing: 8px; }
+.startup-identity strong span { color: #969696; }
+.startup-identity small { font-size: 12px; color: #737373; letter-spacing: 3px; }
+.startup-eye { position: absolute; left: var(--intro-x, 50%); top: var(--intro-y, 42%); width: var(--landing-size, 320px); height: var(--landing-size, 320px); transform: translate(-50%, -50%); opacity: var(--eye-reveal, 0); }
+.startup-eye .ghost-stage.small, .startup-eye .ghost-stage.small .ghost-eye { width: 100%; height: 100%; left: 0; top: 0; }
+.startup-eye .ghost-eye { filter: drop-shadow(0 12px 12px #00000030) !important; }
+.startup-overlay .startup-eye .dsh-fairy-eye { transform: scaleY(var(--eye-open, 0)); transform-origin: 80px 80px; }
+.startup-overlay .startup-eye .ghost-stage .dsh-fairy-eyeball { transform: translateX(var(--look-x, 0px)) scale(var(--iris-scale, .65)); transform-origin: 80px 80px; transition: none; }
+.startup-overlay .startup-eye .dsh-fairy-outer-disc { transform: rotate(var(--metal-spin, -125deg)); transform-origin: 80px 80px; }
+.startup-overlay .startup-eye .dsh-fairy-corners { transform: rotate(var(--bezel-spin, 80deg)); transform-origin: 80px 80px; }
+.startup-overlay .startup-eye .dsh-fairy-highlight { opacity: var(--highlight, 0); }
+.startup-bezel { position: absolute; inset: 3%; border: 1px solid #77777750; border-left: 2px solid #5d5d5d90; border-right: 2px solid #fafafa; border-radius: 50%; transform: rotate(var(--bezel-spin, 80deg)); opacity: calc(1 - var(--arrival-cards, 0)); }
+.startup-bezel::after { content: ''; position: absolute; inset: 5px; border: 1px dashed #77777740; border-radius: 50%; }
+.startup-skip { position: absolute; right: 30px; bottom: 28px; display: flex; align-items: center; gap: 22px; padding: 12px 18px; font-size: 13px; background-color: #fff; opacity: .85; }
+.startup-skip span { color: #757575; font: 10px Consolas, monospace; }
+.app-shell[inert] .sidebar { opacity: var(--arrival-sidebar, 1); transform: translateX(calc((1 - var(--arrival-sidebar, 1)) * -16px)); }
+.app-shell[inert] .quick-actions { opacity: var(--arrival-cards, 1); transform: translateY(calc((1 - var(--arrival-cards, 1)) * 14px)); }
+.app-shell[inert] .composer-dock { opacity: var(--arrival-composer, 1); transform: translateY(calc((1 - var(--arrival-composer, 1)) * 18px)); }
+.app-shell[inert] .hero > .ghost-stage, .app-shell[inert] .hero-wordmark,
+.app-shell[inert] .hero-status, .app-shell[inert] .hero-description,
+.app-shell[inert] .hero-system-line, .app-shell[inert] .hero-bottom-caption { opacity: var(--arrival-eye, 1); }
+.startup-overlay[data-mode=reduced] { background: #fff; }
+.startup-overlay[data-mode=reduced] .startup-identity, .startup-overlay[data-mode=reduced] .startup-eye { display: none; }

@@ -44,10 +44,11 @@ export function SettingsPanel({ snapshot, onClose, onSave, onError }: { snapshot
         {tab === 'appearance' && <>
           <h3>你的工作空间</h3><p className="muted">白色工作台、透明玻璃控件与银灰 Ghost，为长时间工作留出安静的空间。</p>
           <label className="switch-row"><div><strong>显示 Ghost</strong><span>工作区与首页中的动态形象</span></div><input type="checkbox" checked={settings.mascotVisible} onChange={e => run(() => onSave({ mascotVisible: e.target.checked }))} /></label>
+          <label className="switch-row"><div><strong>启动动画</strong><span>完整启动时播放约 2.75 秒的机械睁眼动画，Esc 可跳过；恢复窗口时不重播</span></div><input aria-label="启动动画" type="checkbox" checked={settings.startupAnimation} onChange={e => run(() => onSave({ startupAnimation: e.target.checked }))} /></label>
           <label className="field-label" htmlFor="motion">动态效果</label><select id="motion" value={settings.motion} onChange={e => run(() => onSave({ motion: e.target.value as Settings['motion'] }))}><option value="full">完整 · 呼吸、视线与状态动画</option><option value="reduced">轻量 · 仅保留状态提示</option><option value="off">静态 · 关闭装饰动画</option></select>
           <label className="field-label" htmlFor="font-size">文字大小 <span>{settings.fontSize} px</span></label><input id="font-size" type="range" min={12} max={20} value={settings.fontSize} onChange={e => run(() => onSave({ fontSize: Number(e.target.value) }))} />
-          <div className="appearance-preview"><span className="status-dot connected" /><span>Ghost 在线，准备继续你的研究。</span></div>
-          <button className="text-button" onClick={() => run(() => onSave({ sidebarWidth: DEFAULT_SETTINGS.sidebarWidth, detailWidth: DEFAULT_SETTINGS.detailWidth, fontSize: DEFAULT_SETTINGS.fontSize, motion: DEFAULT_SETTINGS.motion, mascotVisible: DEFAULT_SETTINGS.mascotVisible }))}><RotateCcw size={14} />恢复默认界面</button>
+          <div className="appearance-preview"><span className={`status-dot ${runtime.connection}`} /><span>{runtime.connection === 'connected' ? 'Ghost 已连接，准备继续你的研究。' : runtime.connection === 'connecting' ? '正在连接 Codex…' : '工作空间已就绪，Codex 尚未连接。'}</span></div>
+          <button className="text-button" onClick={() => run(() => onSave({ sidebarWidth: DEFAULT_SETTINGS.sidebarWidth, detailWidth: DEFAULT_SETTINGS.detailWidth, fontSize: DEFAULT_SETTINGS.fontSize, motion: DEFAULT_SETTINGS.motion, mascotVisible: DEFAULT_SETTINGS.mascotVisible, startupAnimation: DEFAULT_SETTINGS.startupAnimation }))}><RotateCcw size={14} />恢复默认界面</button>
         </>}
         {tab === 'about' && <>
           <div className="about-brand">GHOST<span>STUDIO / {APP_VERSION}</span></div><h3>让研究有一个统一入口。</h3><p className="muted">本地优先的 Codex 桌面工作台。项目、对话与代码变更，在同一个空间中继续。</p>
