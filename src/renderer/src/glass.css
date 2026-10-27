@@ -1,0 +1,108 @@
+/* C3 glass: a clear interior, curved light, two polished rims, and a contact shadow. */
+:root {
+  --glass: radial-gradient(ellipse at var(--glass-x, 25%) var(--glass-y, 5%), #ffffffd9, #ffffff00 65%), linear-gradient(162deg, #ffffff85 2%, #ffffff30 45%, #b9bec333 72%, #ffffff8f 100%);
+  --glass-border: #92979c70;
+  --glass-shadow: inset 0 2px 2px #fff, inset 2px 0 2px #ffffffb3, inset 0 -3px 3px #6e76801c, inset -1px 0 2px #8c92991c, 0 7px 20px #30363c12, 0 2px 3px #30363c0d;
+}
+
+.new-session, .quick-actions button, .composer-card, .primary-button, .secondary-button,
+.send-button, .settings-modal, .capability-modal, .pet-status, .pet-tools, .pet-chat {
+  position: relative;
+  isolation: isolate;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(18px) saturate(.15);
+  -webkit-backdrop-filter: blur(18px) saturate(.15);
+  color: var(--ink);
+}
+
+:is(.new-session, .quick-actions button, .composer-card, .primary-button, .secondary-button,
+.send-button, .settings-modal, .capability-modal, .pet-status, .pet-tools, .pet-chat)::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid #ffffffdb;
+  border-top-color: #fff;
+  border-bottom-color: #ffffffb3;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 1px #ffffffcc, 0 1px 1px #5e667512;
+  pointer-events: none;
+  z-index: -1;
+}
+
+:is(.new-session, .quick-actions button, .composer-card, .primary-button, .secondary-button,
+.send-button, .settings-modal, .capability-modal, .pet-status, .pet-tools, .pet-chat)::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 105% 125% at 25% -55%, #ffffff00 75%, #ffffffb8 76%, #ffffff59 78%, #ffffff00 80%), linear-gradient(112deg, #ffffff00 30%, #ffffff70 45%, #ffffff00 62%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.quick-actions button { border-radius: 18px; padding: 20px 20px 18px; }
+.new-session { border-radius: 13px; }
+.composer-card { border-radius: 22px; }
+.composer-card textarea { background: transparent; }
+.send-button { border-radius: 12px; }
+.new-session, .primary-button, .secondary-button, .send-button { overflow: hidden; }
+
+:is(.new-session, .quick-actions button, .primary-button, .secondary-button, .send-button):hover:not(:disabled) {
+  background: var(--glass);
+  border-color: #7f858b9c;
+  box-shadow: var(--glass-shadow), 0 5px 16px #2b333b0c;
+  transform: translateY(-1px);
+}
+:is(.new-session, .quick-actions button, .primary-button, .secondary-button, .send-button):active:not(:disabled) {
+  transform: translateY(1px) scale(.99);
+  box-shadow: inset 0 2px 5px #48515a1a, inset 0 0 0 2px #ffffffd9, 0 1px 3px #00000009;
+}
+.composer-card:focus-within { border-color: #656b7180; box-shadow: var(--glass-shadow), 0 0 0 3px #71798212; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #545a60; outline-offset: 3px; }
+
+.sidebar { background: radial-gradient(ellipse at 10% 15%, #fff, transparent 65%), linear-gradient(155deg, #f3f4f5, #e9ebed 65%, #f7f8f9); }
+.hdd-background { background: radial-gradient(ellipse at 42% 52%, #e6e8eb69, transparent 64%), #fff; }
+.hdd-glow { width: 1100px; height: 100%; top: 0; background: radial-gradient(ellipse at 66% 60%, #d4d8dd38, transparent 64%); }
+.hdd-grid { background-image: linear-gradient(#3333330c 1px, transparent 1px), linear-gradient(90deg, #3333330c 1px, transparent 1px); }
+.has-conversation .hdd-background { opacity: .16; }
+.settings-modal, .capability-modal { background-color: #f7f8f9ed; box-shadow: var(--glass-shadow), 0 28px 90px #1c253329; }
+.modal-scrim { background: #30343a29; }
+.pet-chat { background-color: #f8f9faf0; }
+.pet-status, .pet-tools { background-color: #f4f5f6db; }
+.pet-chat, .pet-status, .pet-tools { position: absolute; }
+
+/* One stable silver shell. Only task-specific decoration moves. */
+.ghost-stage { --dsh-fairy-outer-halo-color: #777; }
+.ghost-eye { filter: drop-shadow(0 8px 7px #252b322e); }
+.dsh-fairy-scanlines { opacity: .08; }
+.dsh-fairy-corners { animation: none; }
+.orbit-one { border-style: solid; border-color: #6f747b4d; animation: none; }
+.orbit-two { border-color: #555b632b; border-left-color: #646a7280; border-right-color: #646a7280; }
+.ghost-stage[data-activity=running] .ghost-eye { animation: ghost-float 7s ease-in-out infinite; }
+.ghost-stage[data-activity=running] .dsh-fairy-corners { animation: spin 18s linear infinite; }
+.ghost-stage[data-activity=running] .orbit-one { border-style: dashed; animation: spin 24s linear infinite; }
+.ghost-stage[data-activity=approval] .orbit-one { animation: status-pulse 2.4s ease-in-out infinite; }
+.ghost-stage[data-activity=completed] .ghost-eye { animation: ghost-float 7s ease-in-out infinite; }
+.ghost-stage[data-feedback=complete] .ghost-eye { animation: ghost-complete .85s ease-out; }
+.ghost-stage[data-activity=error] .ghost-eye,
+.ghost-stage[data-activity=interrupted] .ghost-eye,
+.ghost-stage[data-activity=error] .dsh-fairy-eye,
+.ghost-stage[data-activity=interrupted] .dsh-fairy-eye,
+.ghost-stage[data-activity=error] .dsh-fairy-corners,
+.ghost-stage[data-activity=interrupted] .dsh-fairy-corners { animation: none; }
+.ghost-stage[data-activity=interrupted] { opacity: .82; }
+.ghost-stage[data-connection=disconnected] .coordinate-right { color: #666; }
+.ghost-stage[data-activity=error] .coordinate-left::after { content: ' !'; font-weight: 700; }
+.ghost-stage[data-activity=interrupted] .coordinate-left::after { content: ' II'; font-weight: 700; }
+.ghost-stage[data-paused=true] *, .app-shell[data-paused=true] .hdd-background * { animation-play-state: paused !important; }
+
+[data-motion=reduced] button, [data-motion=off] button { transition: none !important; }
+[data-motion=reduced] button:hover, [data-motion=reduced] button:active,
+[data-motion=off] button:hover, [data-motion=off] button:active { transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none !important; }
+  button:hover, button:active { transform: none !important; }
+}
+@media (max-height: 820px) { .quick-actions button { padding: 14px 16px; } }

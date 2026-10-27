@@ -33,8 +33,11 @@ test('first turn uses the fresh thread; persona changes apply on next turn; appr
     storage.updateSettings({ persona: '新的自定义人设' })
     await service.send(session.id, 'next turn')
     assert.equal(calls.find(c => c.method === 'thread/resume')?.params.developerInstructions, '新的自定义人设')
-    ;(service as any).serverRequest({ id: 11, method: 'item/fileChange/requestApproval', params: { threadId: session.id, turnId: 'turn-1' } })
     ;(service as any).notification('turn/completed', { threadId: session.id, turn: { id: 'turn-1', status: 'interrupted' } })
+    assert.equal(service.runtime.activity, 'running', 'a previous turn cannot finish a new task before its live turn is confirmed')
+    ;(service as any).notification('turn/started', { threadId: session.id, turn: { id: 'turn-2' } })
+    ;(service as any).serverRequest({ id: 11, method: 'item/fileChange/requestApproval', params: { threadId: session.id, turnId: 'turn-2' } })
+    ;(service as any).notification('turn/completed', { threadId: session.id, turn: { id: 'turn-2', status: 'interrupted' } })
     assert.equal(service.approvals.length, 0)
     assert.equal(service.runtime.activity, 'interrupted')
   } finally { service.close(); await rm(directory, { recursive: true, force: true }) }

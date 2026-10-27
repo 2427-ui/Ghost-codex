@@ -16,7 +16,7 @@ try {
   if ((await page.evaluate(() => window.ghost.snapshot())).settings.lastProjectId !== null) throw new Error('Fresh packaged app must allow ordinary chat')
   const defaults = (await page.evaluate(() => window.ghost.snapshot())).settings
   const persona = JSON.parse(await readFile(new URL('../src/shared/persona/default.json', import.meta.url), 'utf8')).text
-  if (defaults.fontSize !== 18 || defaults.persona !== persona) throw new Error('Packaged default font/persona mismatch')
+  if (defaults.fontSize !== 18 || defaults.persona !== persona || defaults.startupAnimation !== true) throw new Error('Packaged default font/persona/startup mismatch')
   await page.locator('.projects-list').getByRole('button', { name: '测试项目', exact: true }).click()
   await page.getByRole('button', { name: '打开项目文件' }).click()
   await page.getByRole('button', { name: 'example.ts', exact: true }).click()

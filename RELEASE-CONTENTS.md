@@ -1,10 +1,12 @@
 # Ghost-codex 正式发布内容
 
-Ghost Studio 0.2.0，C3 白色玻璃界面，默认字号 18，默认人设为 Fairy-DSH 风格的 Ghost。
+Ghost Studio 0.3.1，C3 白色玻璃界面，默认字号 18，默认人设为 Fairy-DSH 风格的 Ghost。
+
+公开分发采用 MIT 自有代码许可，依赖使用修复后的清洗库，启动动画不包含游戏视频。发布核对见 [公开发布检查](docs/PUBLICATION.md)。
 
 ## 使用者
 
-- `dist/Ghost Studio Setup 0.2.0.exe`：Windows x64 安装包。
+- `dist/Ghost Studio Setup 0.3.1.exe`：Windows x64 安装包。
 - `dist/win-unpacked/GhostStudio.exe`：解压式程序，须保留整个 win-unpacked 目录。
 - `dist/SHA256SUMS.txt`：安装包、EXE 与 app.asar 的 SHA-256 清单。
 - `启动Ghost.cmd`：优先启动解压式构建。
@@ -15,7 +17,7 @@ Ghost Studio 0.2.0，C3 白色玻璃界面，默认字号 18，默认人设为 F
 
 源码、package.json/package-lock.json、构建配置、测试、维护脚本、文档截图及第三方许可均位于本目录。使用 `npm ci` 安装依赖，维护命令见 [开发文档](docs/DEVELOPMENT.md)。
 
-默认人设来源、适配范围及归属见 [更新说明](docs/CHANGES-DEFAULTS-RELEASE.md) 与 [第三方说明](THIRD_PARTY_NOTICES.md)。项目自有代码的许可未在本次迁移中另行变更；第三方内容遵循其原许可。
+默认人设来源、适配范围及归属见 [更新说明](docs/CHANGES-DEFAULTS-RELEASE.md) 与 [第三方说明](THIRD_PARTY_NOTICES.md)。项目自有代码和文档采用根目录 MIT 许可证；第三方内容遵循其原许可。
 
 ## 目录边界
 

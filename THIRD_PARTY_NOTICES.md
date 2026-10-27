@@ -1,5 +1,9 @@
 # Third-party notices
 
+Ghost Studio's original code and documentation are licensed under the MIT
+License in the repository root. Third-party works below retain their own
+licenses and are not relicensed by that file.
+
 Ghost Studio includes an adapted SVG eye and its geometry constants from
 [Chengzhibense/Fairy-DSH](https://github.com/Chengzhibense/Fairy-DSH), commit
 `d639887a386b0de6fef2e61c97dc268631854591`.
@@ -26,3 +30,14 @@ included. This project is not affiliated with OpenAI, DeepSeek, or HoYoverse.
 
 Other dependencies retain their own licenses in their npm packages. Versions are
 pinned by `package-lock.json`; an inventory is generated before packaging.
+
+The public distribution contains no game boot footage or previews derived
+from it. Startup uses code-based animation of the attributed eye artwork.
+The game's names are used as references and are not granted by the MIT or
+Apache licenses. No rights to HoYoverse game assets or trademarks are granted.
+
+The renderer explicitly redirects Monaco Editor's embedded DOMPurify import
+to the pinned DOMPurify 3.4.17 ESM distribution. DOMPurify is dual-licensed
+under Apache-2.0 OR MPL-2.0; its notices are included in the generated
+dependency inventory. Unused editor source packages are excluded from the
+application archive; browser workers and editor code are bundled locally.

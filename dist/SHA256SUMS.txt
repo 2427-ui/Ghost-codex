@@ -1,3 +1,3 @@
-7bb7ddcdb58e6d0c401a9ffda2cebe54054978de55c33e37e9e1a1c4a82b2bd1  Ghost Studio Setup 0.2.0.exe
-c775c8fe911503ba323fe783e6db7b6799ff934cd8fce57b0146226ce39f445a  win-unpacked/GhostStudio.exe
-aa96a22a6d213bf3155958c70f93aa630e6d6daa0152d3ca3716cfe2991c8755  win-unpacked/resources/app.asar
+55ac40eeb86cec2357ba976d6ef1460a18f080692cad9c6381fb0a5f3d52a504  Ghost Studio Setup 0.3.1.exe
+5a35a43f8ad9c9942e06a52f72047001e81e00115e7a6459d35b531731da682f  win-unpacked/GhostStudio.exe
+c9bcf0377df26926e018dca430ec65ada3365ad2a4debb345e64358886918044  win-unpacked/resources/app.asar

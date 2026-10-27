@@ -1,8 +1,8 @@
 node_modules/
 out/
 dist/*
-!dist/Ghost Studio Setup 0.2.0.exe
-!dist/Ghost Studio Setup 0.2.0.exe.blockmap
+!dist/Ghost Studio Setup 0.3.1.exe
+!dist/Ghost Studio Setup 0.3.1.exe.blockmap
 !dist/SHA256SUMS.txt
 !dist/win-unpacked/
 output/

@@ -26,12 +26,14 @@ const SVG = `
 		<!-- Color, glow, scanline, and horizontal-only displacement resources. -->
 		<linearGradient id="dsh-fairy-outer-gradient" x1=".2" y1="0" x2=".8" y2="1">
 			<stop stop-color="#ffffff"/>
-			<stop offset=".16" stop-color="#c9c9c9"/>
-			<stop offset=".28" stop-color="#909090"/>
+			<stop offset=".13" stop-color="#eeeeee"/>
+			<stop offset=".22" stop-color="#767676"/>
+			<stop offset=".28" stop-color="#c9c9c9"/>
 			<stop offset=".42" stop-color="#f4f4f4"/>
 			<stop offset=".52" stop-color="#ffffff"/>
-			<stop offset=".68" stop-color="#b4b4b4"/>
-			<stop offset=".82" stop-color="#898989"/>
+			<stop offset=".64" stop-color="#dadada"/>
+			<stop offset=".73" stop-color="#707070"/>
+			<stop offset=".85" stop-color="#c6c6c6"/>
 			<stop offset="1" stop-color="#ededed"/>
 		</linearGradient>
 		<linearGradient id="dsh-fairy-rim-gradient" x1="0" y1="0" x2="1" y2="1">
@@ -41,7 +43,7 @@ const SVG = `
 			<stop stop-color="#ffffff"/><stop offset=".72" stop-color="#f8f8f8"/><stop offset="1" stop-color="#d6d6d6"/>
 		</radialGradient>
 		<linearGradient id="dsh-fairy-iris-gradient" x1="0" y1="0" x2="1" y2="1">
-			<stop stop-color="#d2d2d2"/><stop offset=".48" stop-color="#bcbcbc"/><stop offset="1" stop-color="#929292"/>
+			<stop stop-color="#eeeeee"/><stop offset=".4" stop-color="#bdbdbd"/><stop offset=".7" stop-color="#838383"/><stop offset="1" stop-color="#dadada"/>
 		</linearGradient>
 		<radialGradient id="dsh-fairy-pupil-gradient" cx=".4" cy=".3" r=".75">
 			<stop stop-color="#424242"/><stop offset=".64" stop-color="#232323"/><stop offset="1" stop-color="#101010"/>
@@ -116,17 +118,19 @@ const SVG = `
 	<g class="dsh-fairy-signal" data-fault-source="true">
 	<!-- The complete normal visual. Glitch modes filter or slice this entire group. -->
 	<g id="dsh-fairy-image" class="dsh-fairy-image">
-		<circle class="dsh-fairy-outer-disc" cx="80" cy="80" r="${outerDiscRadius}" fill="url(#dsh-fairy-outer-gradient)" stroke="#bcbcbc" stroke-width="${outerStrokeWidth}"/>
+		<circle class="dsh-fairy-outer-disc" cx="80" cy="80" r="${outerDiscRadius}" fill="url(#dsh-fairy-outer-gradient)" stroke="#777777" stroke-width="${outerStrokeWidth}"/>
 		<!-- Fine machined rims follow the silver shell without changing its silhouette. -->
 		<g fill="none" stroke="url(#dsh-fairy-rim-gradient)">
-			<circle cx="80" cy="80" r="66.5" stroke-width="1"/>
+			<circle cx="80" cy="80" r="66.5" stroke-width="1.2"/>
 			<circle cx="80" cy="80" r="64.8" stroke-width=".5"/>
 			<circle cx="80" cy="80" r="63.3" stroke-width=".6"/>
 			<circle cx="80" cy="80" r="61.7" stroke-width=".4"/>
-			<circle cx="80" cy="80" r="57" stroke-width=".7"/>
+			<circle cx="80" cy="80" r="58" stroke-width="1.1"/>
+			<circle cx="80" cy="80" r="55.6" stroke="#505050" stroke-width=".7"/>
+			<circle cx="80" cy="80" r="54.7" stroke="#ffffff" stroke-width="1.2"/>
 		</g>
 	<!-- Dark circle + square form the four rotating lashes / eyelids. -->
-	<g class="dsh-fairy-corners" clip-path="url(#dsh-fairy-disc-clip)" fill="#8b8b8b" opacity=".6">
+	<g class="dsh-fairy-corners" clip-path="url(#dsh-fairy-disc-clip)" fill="#686868" opacity=".7">
 		<!-- Slightly open the eye: reduce the lid ring without changing its silhouette. -->
 		<circle cx="80" cy="80" r="51.75"/>
 		<rect x="37" y="37" width="86" height="86" rx="2" transform="rotate(3 80 80)"/>
